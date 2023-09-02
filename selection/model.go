@@ -248,6 +248,7 @@ func (m *Model[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.selected[c.Index()] = c
 			}
+			m.cursorDown()
 		case keyMatches(msg, m.KeyMap.ClearFilter):
 			m.filterInput.Reset()
 			m.currentChoices, m.availableChoices = m.filteredAndPagedChoices()
@@ -443,9 +444,6 @@ func (m *Model[T]) filteredAndPagedChoices() ([]*Choice[T], int) {
 	// var available int
 
 	choices := SearchPrefix(m.filterInput.Value(), m.choices)
-	// if len(choices) >= m.PageSize {
-	// 	choices = choices[:m.PageSize]
-	// }
 	viewedChoices := []*Choice[T]{}
 
 	for _, choice := range choices {
@@ -461,7 +459,6 @@ func (m *Model[T]) filteredAndPagedChoices() ([]*Choice[T], int) {
 			continue
 		}
 
-		// choices = append(choices, choice)
 		viewedChoices = append(viewedChoices, choice)
 	}
 
