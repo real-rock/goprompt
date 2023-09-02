@@ -345,14 +345,6 @@ func (m *Model[T]) View() string {
 
 	if m.quitting {
 		return ""
-		// view, err := m.resultView()
-		// if err != nil {
-		// 	m.Err = err
-
-		// 	return ""
-		// }
-
-		// return m.wrap(view)
 	}
 
 	// avoid panics if Quit is sent during Init
@@ -422,28 +414,58 @@ func (m *Model[T]) wrap(text string) string {
 	return m.WrapMode(text, m.width)
 }
 
+func SearchPrefix[T any](filter string, arr []*Choice[T]) []*Choice[T] {
+	if filter == "" {
+		return arr
+	}
+	lower := LowerBound(filter, arr)
+	return arr[lower:]
+}
+
+// Find the lower bound of the prefix in the sorted slice.
+func LowerBound[T any](filter string, arr []*Choice[T]) int {
+	low, high := 0, len(arr)
+	for low < high {
+		mid := low + (high-low)/2
+		if arr[mid].String < filter {
+			low = mid + 1
+		} else {
+			high = mid
+		}
+	}
+	return low
+}
+
 func (m *Model[T]) filteredAndPagedChoices() ([]*Choice[T], int) {
-	choices := []*Choice[T]{}
+	// choices := []*Choice[T]{}
 
 	var available, ignored int
+	// var available int
 
-	for _, choice := range m.choices {
+	choices := SearchPrefix(m.filterInput.Value(), m.choices)
+	// if len(choices) >= m.PageSize {
+	// 	choices = choices[:m.PageSize]
+	// }
+	viewedChoices := []*Choice[T]{}
+
+	for _, choice := range choices {
 		if m.Filter != nil && !m.Filter(m.filterInput.Value(), choice) {
 			continue
 		}
 
 		available++
 
-		if m.PageSize > 0 && (len(choices) >= m.PageSize || ignored < m.scrollOffset) {
+		if m.PageSize > 0 && (len(viewedChoices) >= m.PageSize || ignored < m.scrollOffset) {
 			ignored++
 
 			continue
 		}
 
-		choices = append(choices, choice)
+		// choices = append(choices, choice)
+		viewedChoices = append(viewedChoices, choice)
 	}
 
-	return choices, available
+	return viewedChoices, available
 }
 
 func (m *Model[T]) canScrollDown() bool {

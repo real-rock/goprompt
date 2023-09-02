@@ -229,7 +229,7 @@ func New[T any](prompt string, choices []T) *Selection[T] {
 		FilterPrompt:                DefaultFilterPrompt,
 		Template:                    DefaultTemplate,
 		ResultTemplate:              DefaultResultTemplate,
-		Filter:                      FilterContainsCaseInsensitive[T],
+		Filter:                      FilterHasPrefixCaseInsensitive[T],
 		FilterInputPlaceholderStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
 		CurrentCursorStyle:          DefaultCurrentCursorStyle[T],
 		SelectedChoiceStyle:         DefaultSelectedChoiceStyle[T],
@@ -268,6 +268,12 @@ func (s *Selection[T]) RunPrompt() ([]T, error) {
 // the choice contains the filter string without regard for capitalization.
 func FilterContainsCaseInsensitive[T any](filter string, choice *Choice[T]) bool {
 	return strings.Contains(strings.ToLower(choice.String), strings.ToLower(filter))
+}
+
+// FilterHasPrefixCaseInsensitive returns true if the string representation of
+// the choice has prefix the filter string without regard for capitalization.
+func FilterHasPrefixCaseInsensitive[T any](filter string, choice *Choice[T]) bool {
+	return strings.HasPrefix(strings.ToLower(choice.String), strings.ToLower(filter))
 }
 
 // FilterContainsCaseSensitive returns true if the string representation of the

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/real-rock/goprompt/selection"
 )
@@ -21,25 +20,14 @@ type IMSResponse struct {
 }
 
 func main() {
-	hostnames := []IMSResponse{}
-	for i := 0; i < 100; i++ {
-		server := IMSResponse{
-			Dbms:     "oracle",
-			Hostname: fmt.Sprintf("host-%d", i),
-		}
-		hostnames = append(hostnames, server)
+	hostnames := []string{}
+	for i := 0; i < 500000; i++ {
+		hostnames = append(hostnames, fmt.Sprintf("host-%d", i))
 	}
 	sp := selection.New("Select hostnames", hostnames)
 	sp.FilterPrompt = "Filter by ID:"
 	sp.FilterPlaceholder = "Type to filter"
-	sp.PageSize = 3
 	sp.LoopCursor = true
-	sp.Filter = func(filter string, choice *selection.Choice[IMSResponse]) bool {
-		return strings.HasPrefix(choice.Value.Hostname, filter)
-	}
-	sp.ExtendedTemplateFuncs = map[string]interface{}{
-		"name": func(c *selection.Choice[IMSResponse]) string { return c.Value.Hostname },
-	}
 	sp.PageSize = 10
 
 	choice, err := sp.RunPrompt()
