@@ -1,4 +1,4 @@
-package selection
+package multiselection
 
 import (
 	"bytes"
@@ -25,6 +25,8 @@ type Model[T any] struct {
 	// MaxWidth limits the width of the view using the Selection's WrapMode.
 	MaxWidth int
 
+	selected map[int]*Choice[T]
+
 	filterInput textinput.Model
 	// currently displayed choices, after filtering and pagination
 	currentChoices []*Choice[T]
@@ -48,7 +50,10 @@ var _ tea.Model = &Model[any]{}
 // NewModel returns a new selection prompt model for the
 // provided choices.
 func NewModel[T any](selection *Selection[T]) *Model[T] {
-	return &Model[T]{Selection: selection}
+	return &Model[T]{
+		Selection: selection,
+		selected:  make(map[int]*Choice[T]),
+	}
 }
 
 // Init initializes the selection prompt model.
@@ -115,12 +120,23 @@ func (m *Model[T]) initTemplate() (*template.Template, error) {
 
 			return m.SelectedChoiceStyle(c)
 		},
+		"CurrentCursor": func(c *Choice[T]) string {
+			if m.SelectedChoiceStyle == nil {
+				return c.String
+			}
+
+			return m.CurrentCursorStyle(c)
+		},
 		"Unselected": func(c *Choice[T]) string {
 			if m.UnselectedChoiceStyle == nil {
 				return c.String
 			}
 
 			return m.UnselectedChoiceStyle(c)
+		},
+		"Contains": func(s map[int]*Choice[T], elem *Choice[T]) bool {
+			_, ok := s[elem.idx]
+			return ok
 		},
 	})
 
@@ -163,7 +179,7 @@ func (m *Model[T]) initFilterInput() textinput.Model {
 }
 
 // ValueAsChoice returns the selected value wrapped in a Choice struct.
-func (m *Model[T]) ValueAsChoice() (*Choice[T], error) {
+func (m *Model[T]) ValueAsChoice() ([]*Choice[T], error) {
 	if m.Err != nil {
 		return nil, m.Err
 	}
@@ -176,20 +192,31 @@ func (m *Model[T]) ValueAsChoice() (*Choice[T], error) {
 		return nil, fmt.Errorf("choice index out of bounds")
 	}
 
-	return m.currentChoices[m.currentIdx], nil
+	selectedSlice := []*Choice[T]{}
+
+	for idx := range m.selected {
+		selectedSlice = append(selectedSlice, m.choices[idx])
+	}
+
+	return selectedSlice, nil
 }
 
 // Value returns the choice that is currently selected or the final
 // choice after the prompt has concluded.
-func (m *Model[T]) Value() (T, error) {
-	choice, err := m.ValueAsChoice()
+func (m *Model[T]) Value() ([]T, error) {
+	choices, err := m.ValueAsChoice()
 	if err != nil {
 		var zeroValue T
 
-		return zeroValue, err
+		return []T{zeroValue}, err
 	}
 
-	return choice.Value, nil
+	values := []T{}
+	for _, c := range choices {
+		values = append(values, c.Value)
+	}
+
+	return values, nil
 }
 
 // Update updates the model based on the received message.
@@ -214,6 +241,14 @@ func (m *Model[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.quitting = true
 
 			return m, tea.Quit
+		case keyMatches(msg, m.KeyMap.Tab):
+			c := m.currentChoices[m.currentIdx]
+			if _, ok := m.selected[c.Index()]; ok {
+				delete(m.selected, c.Index())
+			} else {
+				m.selected[c.Index()] = c
+			}
+			m.cursorDown()
 		case keyMatches(msg, m.KeyMap.ClearFilter):
 			m.filterInput.Reset()
 			m.currentChoices, m.availableChoices = m.filteredAndPagedChoices()
@@ -325,7 +360,8 @@ func (m *Model[T]) View() string {
 		"FilterInput":   m.filterInput.View(),
 		"Choices":       m.currentChoices,
 		"NChoices":      len(m.currentChoices),
-		"SelectedIndex": m.currentIdx,
+		"CurrentIndex":  m.currentIdx,
+		"SelectedItems": m.selected,
 		"PageSize":      m.PageSize,
 		"IsPaged":       m.PageSize > 0 && len(m.currentChoices) > m.PageSize,
 		"AllChoices":    m.choices,
@@ -379,28 +415,54 @@ func (m *Model[T]) wrap(text string) string {
 	return m.WrapMode(text, m.width)
 }
 
+func SearchPrefix[T any](filter string, arr []*Choice[T]) []*Choice[T] {
+	if filter == "" {
+		return arr
+	}
+	lower := LowerBound(filter, arr)
+	return arr[lower:]
+}
+
+// Find the lower bound of the prefix in the sorted slice.
+func LowerBound[T any](filter string, arr []*Choice[T]) int {
+	low, high := 0, len(arr)
+	for low < high {
+		mid := low + (high-low)/2
+		if arr[mid].String < filter {
+			low = mid + 1
+		} else {
+			high = mid
+		}
+	}
+	return low
+}
+
 func (m *Model[T]) filteredAndPagedChoices() ([]*Choice[T], int) {
-	choices := []*Choice[T]{}
+	// choices := []*Choice[T]{}
 
 	var available, ignored int
+	// var available int
 
-	for _, choice := range m.choices {
+	choices := SearchPrefix(m.filterInput.Value(), m.choices)
+	viewedChoices := []*Choice[T]{}
+
+	for _, choice := range choices {
 		if m.Filter != nil && !m.Filter(m.filterInput.Value(), choice) {
 			continue
 		}
 
 		available++
 
-		if m.PageSize > 0 && (len(choices) >= m.PageSize || ignored < m.scrollOffset) {
+		if m.PageSize > 0 && (len(viewedChoices) >= m.PageSize || ignored < m.scrollOffset) {
 			ignored++
 
 			continue
 		}
 
-		choices = append(choices, choice)
+		viewedChoices = append(viewedChoices, choice)
 	}
 
-	return choices, available
+	return viewedChoices, available
 }
 
 func (m *Model[T]) canScrollDown() bool {

@@ -1,4 +1,4 @@
-package selection_test
+package multiselection_test
 
 import (
 	"errors"
@@ -6,19 +6,18 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-
 	"github.com/muesli/termenv"
 	"github.com/real-rock/goprompt"
-	"github.com/real-rock/goprompt/selection"
+	"github.com/real-rock/goprompt/multiselection"
 	"github.com/real-rock/goprompt/test"
 )
 
 func TestSelectSecond(t *testing.T) {
 	t.Parallel()
 
-	s := selection.New("foo:", []string{"a", "b", "c"})
+	s := multiselection.New("foo:", []string{"a", "b", "c"})
 	s.ColorProfile = termenv.TrueColor
-	m := selection.NewModel(s)
+	m := multiselection.NewModel(s)
 
 	test.Run(t, m, tea.KeyDown)
 	assertNoError(t, m)
@@ -36,10 +35,10 @@ func TestSelectSecond(t *testing.T) {
 func TestPaginate(t *testing.T) {
 	t.Parallel()
 
-	s := selection.New("foo:", []string{"First1", "First2", "Second1"})
+	s := multiselection.New("foo:", []string{"First1", "First2", "Second1"})
 	s.ColorProfile = termenv.TrueColor
 	s.PageSize = 2
-	m := selection.NewModel(s)
+	m := multiselection.NewModel(s)
 
 	test.Run(t, m)
 	assertNoError(t, m)
@@ -59,7 +58,7 @@ func TestPaginate(t *testing.T) {
 func TestPaginatePush(t *testing.T) {
 	t.Parallel()
 
-	m := selection.NewModel(selection.New("foo:",
+	m := multiselection.NewModel(multiselection.New("foo:",
 		[]string{
 			"First1", "First2",
 			"Second1", "Second2",
@@ -93,7 +92,7 @@ func TestPaginatePush(t *testing.T) {
 func TestPaginateScroll(t *testing.T) {
 	t.Parallel()
 
-	m := selection.NewModel(selection.New("foo:", []string{
+	m := multiselection.NewModel(multiselection.New("foo:", []string{
 		"First1", "First2",
 		"Second1", "Second2",
 	}))
@@ -126,7 +125,7 @@ func TestPaginateScroll(t *testing.T) {
 func TestPaginateLast(t *testing.T) {
 	t.Parallel()
 
-	m := selection.NewModel(selection.New("foo:",
+	m := multiselection.NewModel(multiselection.New("foo:",
 		[]string{
 			"First1", "First2",
 			"Second1", "Second2",
@@ -152,7 +151,7 @@ func TestPaginateLast(t *testing.T) {
 func TestFilter(t *testing.T) {
 	t.Parallel()
 
-	m := selection.NewModel(selection.New("foo:", []string{
+	m := multiselection.NewModel(multiselection.New("foo:", []string{
 		"AAA", "BBB", "CCC1", "CCC2", "DDD",
 	}))
 	m.PageSize = 2
@@ -193,7 +192,7 @@ func TestFilter(t *testing.T) {
 func TestNoFilter(t *testing.T) {
 	t.Parallel()
 
-	m := selection.NewModel(selection.New("foo:", []string{
+	m := multiselection.NewModel(multiselection.New("foo:", []string{
 		"AAA", "BBB", "CCC", "DDD",
 	}))
 	m.Filter = nil
@@ -234,7 +233,7 @@ func TestNoFilter(t *testing.T) {
 func TestAbort(t *testing.T) {
 	t.Parallel()
 
-	m := selection.NewModel(selection.New("foo:", []string{
+	m := multiselection.NewModel(multiselection.New("foo:", []string{
 		"a", "b", "c",
 	}))
 	m.ColorProfile = termenv.TrueColor
@@ -255,7 +254,7 @@ func TestAbort(t *testing.T) {
 func TestSubmit(t *testing.T) {
 	t.Parallel()
 
-	m := selection.NewModel(selection.New("foo:", []string{
+	m := multiselection.NewModel(multiselection.New("foo:", []string{
 		"a", "b", "c",
 	}))
 	m.ColorProfile = termenv.TrueColor
@@ -279,7 +278,7 @@ func TestLoopCursorTopToBottom(t *testing.T) {
 	}
 	lastElement := choices[len(choices)-1]
 
-	m := selection.NewModel(selection.New("foo:", choices))
+	m := multiselection.NewModel(multiselection.New("foo:", choices))
 	m.ColorProfile = termenv.TrueColor
 	m.LoopCursor = true
 
@@ -303,7 +302,7 @@ func TestLoopCursorBottomToTop(t *testing.T) {
 	firstElement := choices[0]
 	lastElement := choices[len(choices)-1]
 
-	m := selection.NewModel(selection.New("foo:", choices))
+	m := multiselection.NewModel(multiselection.New("foo:", choices))
 	m.ColorProfile = termenv.TrueColor
 	m.LoopCursor = true
 
@@ -333,7 +332,7 @@ func TestLoopCursorTopToBottomPaged(t *testing.T) {
 	}
 	lastElement := choices[len(choices)-1]
 
-	m := selection.NewModel(selection.New("foo:", choices))
+	m := multiselection.NewModel(multiselection.New("foo:", choices))
 	m.ColorProfile = termenv.TrueColor
 	m.PageSize = 3
 	m.LoopCursor = true
@@ -364,7 +363,7 @@ func TestLoopCursorBottomToTopPaged(t *testing.T) {
 	firstElement := choices[0]
 	lastElement := choices[len(choices)-1]
 
-	m := selection.NewModel(selection.New("foo:", choices))
+	m := multiselection.NewModel(multiselection.New("foo:", choices))
 	m.ColorProfile = termenv.TrueColor
 	m.PageSize = 3
 	m.LoopCursor = true
@@ -391,7 +390,7 @@ func TestLoopCursorBottomToTopPaged(t *testing.T) {
 	test.AssertGoldenView(t, m, "loop_bottom_to_top_paged.golden")
 }
 
-func getChoice[T any](tb testing.TB, m *selection.Model[T]) T {
+func getChoice[T any](tb testing.TB, m *multiselection.Model[T]) T {
 	tb.Helper()
 
 	v, err := m.Value()
@@ -399,10 +398,10 @@ func getChoice[T any](tb testing.TB, m *selection.Model[T]) T {
 		tb.Fatalf("value: %v", err)
 	}
 
-	return v
+	return v[0]
 }
 
-func assertNoError[T any](tb testing.TB, m *selection.Model[T]) {
+func assertNoError[T any](tb testing.TB, m *multiselection.Model[T]) {
 	tb.Helper()
 
 	if m.Err != nil {

@@ -3,7 +3,7 @@ Package selection implements a selection prompt that allows users to select one
 of the pre-defined choices. It also offers customizable appreance and key map as
 well as optional support for pagination, filtering.
 */
-package selection
+package multiselection
 
 import (
 	"fmt"
@@ -38,10 +38,16 @@ const (
     {{- "  " -}}
   {{- end -}}
 
-  {{- if eq $.SelectedIndex $i }}
-   {{- print (Foreground "32" (Bold "▸ ")) (Selected $choice) "\n" }}
+  {{- if Contains $.SelectedItems $choice }}
+  	{{- if eq $.CurrentIndex $i }}
+	  {{- print (Foreground "32" (Bold "▸ ")) "[" (Foreground "32" (Bold "✔")) "] " (CurrentCursor $choice) "\n" }}
+	{{- else }}
+	  {{- print "  [" (Foreground "32" (Bold "✔")) "] " (Selected $choice) "\n" }}
+	{{- end }}
+  {{- else if eq $.CurrentIndex $i }}
+   {{- print (Foreground "32" (Bold "▸   ")) (CurrentCursor $choice) "\n" }}
   {{- else }}
-    {{- print "  " (Unselected $choice) "\n" }}
+    {{- print "    " (Unselected $choice) "\n" }}
   {{- end }}
 {{- end}}`
 
@@ -62,9 +68,13 @@ const (
 	accentColor = termenv.ANSI256Color(32)
 )
 
-// DefaultSelectedChoiceStyle is the default style for selected choices.
-func DefaultSelectedChoiceStyle[T any](c *Choice[T]) string {
+// DefaultCurrentCursorStyle is the default style for selected choices.
+func DefaultCurrentCursorStyle[T any](c *Choice[T]) string {
 	return termenv.String(c.String).Foreground(accentColor).Bold().String()
+}
+
+func DefaultSelectedChoiceStyle[T any](c *Choice[T]) string {
+	return termenv.String(c.String).Foreground(termenv.ANSI256Color(126)).String()
 }
 
 // DefaultFinalChoiceStyle is the default style for final choices.
@@ -166,11 +176,13 @@ type Selection[T any] struct {
 	FilterInputPlaceholderStyle lipgloss.Style
 	FilterInputCursorStyle      lipgloss.Style
 
-	// SelectedChoice style allows to customize the appearance of the currently
-	// selected choice. By default DefaultSelectedChoiceStyle is used. If it is
+	// CurrentCursorStyle style allows to customize the appearance of the currently
+	// selected choice. By default DefaultCurrentCursorStyle is used. If it is
 	// nil, no style will be applied and the plain string representation of the
 	// choice will be used. This style will be available as the template
 	// function Selected. Custom templates may or may not use this function.
+	CurrentCursorStyle func(*Choice[T]) string
+
 	SelectedChoiceStyle func(*Choice[T]) string
 
 	// UnselectedChoiceStyle style allows to customize the appearance of the
@@ -217,8 +229,9 @@ func New[T any](prompt string, choices []T) *Selection[T] {
 		FilterPrompt:                DefaultFilterPrompt,
 		Template:                    DefaultTemplate,
 		ResultTemplate:              DefaultResultTemplate,
-		Filter:                      FilterContainsCaseInsensitive[T],
+		Filter:                      FilterHasPrefixCaseInsensitive[T],
 		FilterInputPlaceholderStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
+		CurrentCursorStyle:          DefaultCurrentCursorStyle[T],
 		SelectedChoiceStyle:         DefaultSelectedChoiceStyle[T],
 		FinalChoiceStyle:            DefaultFinalChoiceStyle[T],
 		KeyMap:                      NewDefaultKeyMap(),
@@ -231,12 +244,12 @@ func New[T any](prompt string, choices []T) *Selection[T] {
 }
 
 // RunPrompt executes the selection prompt.
-func (s *Selection[T]) RunPrompt() (T, error) {
+func (s *Selection[T]) RunPrompt() ([]T, error) {
 	var zeroValue T
 
 	err := validateKeyMap(s.KeyMap)
 	if err != nil {
-		return zeroValue, fmt.Errorf("insufficient key map: %w", err)
+		return []T{zeroValue}, fmt.Errorf("insufficient key map: %w", err)
 	}
 
 	m := NewModel(s)
@@ -245,7 +258,7 @@ func (s *Selection[T]) RunPrompt() (T, error) {
 
 	_, err = p.Run()
 	if err != nil {
-		return zeroValue, fmt.Errorf("running prompt: %w", err)
+		return []T{zeroValue}, fmt.Errorf("running prompt: %w", err)
 	}
 
 	return m.Value()
@@ -255,6 +268,12 @@ func (s *Selection[T]) RunPrompt() (T, error) {
 // the choice contains the filter string without regard for capitalization.
 func FilterContainsCaseInsensitive[T any](filter string, choice *Choice[T]) bool {
 	return strings.Contains(strings.ToLower(choice.String), strings.ToLower(filter))
+}
+
+// FilterHasPrefixCaseInsensitive returns true if the string representation of
+// the choice has prefix the filter string without regard for capitalization.
+func FilterHasPrefixCaseInsensitive[T any](filter string, choice *Choice[T]) bool {
+	return strings.HasPrefix(strings.ToLower(choice.String), strings.ToLower(filter))
 }
 
 // FilterContainsCaseSensitive returns true if the string representation of the

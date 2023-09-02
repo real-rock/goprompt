@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/real-rock/goprompt/selection"
+	"github.com/real-rock/goprompt/multiselection"
 )
 
 type IMSResponse struct {
@@ -24,7 +24,7 @@ func main() {
 	for i := 0; i < 500000; i++ {
 		hostnames = append(hostnames, fmt.Sprintf("host-%d", i))
 	}
-	sp := selection.New("Select hostnames", hostnames)
+	sp := multiselection.New("Select hostnames", hostnames)
 	sp.FilterPrompt = "Filter by ID:"
 	sp.FilterPlaceholder = "Type to filter"
 	sp.LoopCursor = true
