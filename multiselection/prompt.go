@@ -45,9 +45,9 @@ const (
 	  {{- print "  [" (Foreground "32" (Bold "✔")) "] " (Selected $choice) "\n" }}
 	{{- end }}
   {{- else if eq $.CurrentIndex $i }}
-   {{- print (Foreground "32" (Bold "▸   ")) (CurrentCursor $choice) "\n" }}
+   {{- print (Foreground "32" (Bold "▸     ")) (CurrentCursor $choice) "\n" }}
   {{- else }}
-    {{- print "    " (Unselected $choice) "\n" }}
+    {{- print "      " (Unselected $choice) "\n" }}
   {{- end }}
 {{- end}}`
 
