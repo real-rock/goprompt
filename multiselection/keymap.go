@@ -18,6 +18,7 @@ func NewDefaultKeyMap() *KeyMap {
 		ScrollDown:  []string{"pgdown"},
 		ScrollUp:    []string{"pgup"},
 		Tab:         []string{"tab"},
+		Exit:        []string{"ctrl+q"},
 	}
 }
 
@@ -31,6 +32,7 @@ type KeyMap struct {
 	ScrollDown  []string
 	ScrollUp    []string
 	Tab         []string
+	Exit        []string
 }
 
 func keyMatches(key tea.KeyMsg, mapping []string) bool {
@@ -65,6 +67,10 @@ func validateKeyMap(km *KeyMap) error {
 
 	if len(km.Tab) == 0 {
 		return fmt.Errorf("no tab key")
+	}
+
+	if len(km.Exit) == 0 {
+		return fmt.Errorf("no exit key")
 	}
 
 	return nil

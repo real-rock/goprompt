@@ -225,6 +225,9 @@ func (m *Model[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.scrollDown()
 		case keyMatches(msg, m.KeyMap.ScrollUp):
 			m.scrollUp()
+		case keyMatches(msg, m.KeyMap.Exit):
+			m.quitting = true
+			return m, tea.Quit
 		default:
 			return m.updateFilter(msg)
 		}

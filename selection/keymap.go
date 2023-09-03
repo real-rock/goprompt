@@ -17,6 +17,7 @@ func NewDefaultKeyMap() *KeyMap {
 		ClearFilter: []string{"esc"},
 		ScrollDown:  []string{"pgdown"},
 		ScrollUp:    []string{"pgup"},
+		Exit:        []string{"ctrl+q"},
 	}
 }
 
@@ -29,6 +30,7 @@ type KeyMap struct {
 	ClearFilter []string
 	ScrollDown  []string
 	ScrollUp    []string
+	Exit        []string
 }
 
 func keyMatches(key tea.KeyMsg, mapping []string) bool {
@@ -59,6 +61,10 @@ func validateKeyMap(km *KeyMap) error {
 
 	if len(km.Abort) == 0 {
 		return fmt.Errorf("no abort key")
+	}
+
+	if len(km.Exit) == 0 {
+		return fmt.Errorf("no exit key")
 	}
 
 	return nil
