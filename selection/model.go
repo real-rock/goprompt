@@ -172,6 +172,10 @@ func (m *Model[T]) ValueAsChoice() (*Choice[T], error) {
 		return nil, fmt.Errorf("no choices")
 	}
 
+	if m.currentIdx == -1 {
+		return nil, nil
+	}
+
 	if m.currentIdx < 0 || m.currentIdx >= len(m.currentChoices) {
 		return nil, fmt.Errorf("choice index out of bounds")
 	}
@@ -183,7 +187,7 @@ func (m *Model[T]) ValueAsChoice() (*Choice[T], error) {
 // choice after the prompt has concluded.
 func (m *Model[T]) Value() (T, error) {
 	choice, err := m.ValueAsChoice()
-	if err != nil {
+	if err != nil || choice == nil {
 		var zeroValue T
 
 		return zeroValue, err
@@ -226,6 +230,7 @@ func (m *Model[T]) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case keyMatches(msg, m.KeyMap.ScrollUp):
 			m.scrollUp()
 		case keyMatches(msg, m.KeyMap.Exit):
+			m.currentIdx = -1
 			m.quitting = true
 			return m, tea.Quit
 		default:
@@ -342,36 +347,6 @@ func (m *Model[T]) View() string {
 	}
 
 	return m.wrap(viewBuffer.String())
-}
-
-func (m *Model[T]) resultView() (string, error) {
-	viewBuffer := &bytes.Buffer{}
-
-	if m.ResultTemplate == "" {
-		return "", nil
-	}
-
-	if m.resultTmpl == nil {
-		return "", fmt.Errorf("rendering confirmation without loaded template")
-	}
-
-	choice, err := m.ValueAsChoice()
-	if err != nil {
-		return "", err
-	}
-
-	err = m.resultTmpl.Execute(viewBuffer, map[string]interface{}{
-		"FinalChoice":   choice,
-		"Prompt":        m.Prompt,
-		"AllChoices":    m.choices,
-		"NAllChoices":   len(m.choices),
-		"TerminalWidth": m.width,
-	})
-	if err != nil {
-		return "", fmt.Errorf("execute confirmation template: %w", err)
-	}
-
-	return viewBuffer.String(), nil
 }
 
 func (m *Model[T]) wrap(text string) string {
