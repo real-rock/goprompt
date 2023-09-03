@@ -25,6 +25,7 @@ func NewDefaultKeyMap() *KeyMap {
 		Reset:                  []string{},
 		Submit:                 []string{"enter"},
 		Abort:                  []string{"ctrl+c"},
+		Exit:                   []string{"ctrl+q"},
 	}
 }
 
@@ -58,6 +59,7 @@ type KeyMap struct {
 	Reset                  []string
 	Submit                 []string
 	Abort                  []string
+	Exit                   []string
 }
 
 func keyMatches(key tea.KeyMsg, mapping []string) bool {
@@ -84,6 +86,10 @@ func validateKeyMap(km *KeyMap) error {
 
 	if len(km.Abort) == 0 {
 		return fmt.Errorf("no abort key")
+	}
+
+	if len(km.Exit) == 0 {
+		return fmt.Errorf("no exit key")
 	}
 
 	return nil

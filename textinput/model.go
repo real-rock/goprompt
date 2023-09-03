@@ -172,6 +172,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			msg.Type = tea.KeyEnd
 		case keyMatches(msg, m.KeyMap.Paste):
 			msg.Type = tea.KeyCtrlV
+		case keyMatches(msg, m.KeyMap.Exit):
+			m.input.SetValue("")
+			m.quitting = true
+			return m, tea.Quit
 		case keyMatchesUpstreamKeyMap(msg):
 			return m, cmd // do not pass to bubbles/textinput
 		default: // do nothing
